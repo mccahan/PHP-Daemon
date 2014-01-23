@@ -1,5 +1,7 @@
 <?php
 
+namespace Fenix\Daemon;
+
 declare(ticks = 5);
 
 /**
@@ -11,7 +13,7 @@ declare(ticks = 5);
  * @singleton
  * @abstract
  */
-abstract class Core_Daemon
+abstract class DaemonBase
 {
     /**
      * The application will attempt to restart itself it encounters a recoverable fatal error after it's been running
@@ -120,8 +122,8 @@ abstract class Core_Daemon
 
     /**
      * Dictionary of application-wide environment vars with defaults.
-     * @see Core_Daemon::set()
-     * @see Core_Daemon::get()
+     * @see DaemonBase::set()
+     * @see DaemonBase::get()
      * @var array
      */
     private static $env = array(
@@ -182,8 +184,8 @@ abstract class Core_Daemon
 
 
     /**
-     * Return an instance of the Core_Daemon singleton
-     * @return Core_Daemon
+     * Return an instance of the DaemonBase singleton
+     * @return DaemonBase
      */
     public static function getInstance()
     {
@@ -231,7 +233,7 @@ abstract class Core_Daemon
 
     /**
      * A simple alias for get() to create more semantically-correct and self-documenting code.
-     * @example Core_Daemon::get('parent') === Core_Daemon::is('parent')
+     * @example DaemonBase::get('parent') === DaemonBase::is('parent')
      * @param $key
      * @return Mixed
      */
@@ -298,10 +300,10 @@ abstract class Core_Daemon
     private function init()
     {
         $signals = array (
-            // Handled by Core_Daemon:
+            // Handled by DaemonBase:
             SIGTERM, SIGINT, SIGUSR1, SIGHUP, SIGCHLD,
 
-            // Ignored by Core_Daemon -- register callback ON_SIGNAL to listen for them.
+            // Ignored by DaemonBase -- register callback ON_SIGNAL to listen for them.
             // Some of these are duplicated/aliased, listed here for completeness
             SIGUSR2, SIGCONT, SIGQUIT, SIGILL, SIGTRAP, SIGABRT, SIGIOT, SIGBUS, SIGFPE, SIGSEGV, SIGPIPE, SIGALRM,
             SIGCONT, SIGTSTP, SIGTTIN, SIGTTOU, SIGURG, SIGXCPU, SIGXFSZ, SIGVTALRM, SIGPROF,
@@ -601,7 +603,7 @@ abstract class Core_Daemon
     }
 
     /**
-     * Log the $message to the filename returned by Core_Daemon::log_file() and/or optionally print to stdout.
+     * Log the $message to the filename returned by DaemonBase::log_file() and/or optionally print to stdout.
      * Multi-Line messages will be handled nicely.
      *
      * Note: Your log_file() method will be called every 5 minutes (at even increments, eg 00:05, 00:10, 00:15, etc) to
@@ -668,7 +670,7 @@ abstract class Core_Daemon
      * Log the provided $message and dispatch an ON_ERROR event.
      *
      * The library has no concept of a runtime error. If your application doesn't attach any ON_ERROR listeners, there
-     * is literally no difference between using this and just passing the message to Core_Daemon::log().
+     * is literally no difference between using this and just passing the message to DaemonBase::log().
      *
      * @param $message
      * @param string $label
@@ -864,7 +866,7 @@ abstract class Core_Daemon
 
         // If we have idle time, do any housekeeping tasks
         if ($is_idle()) {
-            $this->dispatch(array(Core_Daemon::ON_IDLE), array($is_idle));
+            $this->dispatch(array(DaemonBase::ON_IDLE), array($is_idle));
         }
 
         $stats = array();
@@ -961,7 +963,7 @@ abstract class Core_Daemon
      * Note: As demonstrated, the alias is used simply as the name of a public instance variable on your application
      * object. All of the normal rules of reality apply: Aliases must be unique across plugins AND workers (which work
      * exactly like plugins in this respect). And both must be unique from any other instance or class vars used in
-     * Core_Daemon or in your application superclass.
+     * DaemonBase or in your application superclass.
      *
      * Note: The Lock objects in Core/Lock are also Plugins and can be loaded in nearly the same way.
      * Take Core_Lock_File for instance.  The only difference is that you cannot magically load it using the alias
@@ -1005,7 +1007,7 @@ abstract class Core_Daemon
     }
 
     /**
-     * Create a persistent Worker process. This is an object loader similar to Core_Daemon::plugin().
+     * Create a persistent Worker process. This is an object loader similar to DaemonBase::plugin().
      *
      * @param String $alias  The name of the worker -- Will be instantiated at $this->{$alias}
      * @param callable|Core_IWorker $worker An object of type Core_Worker OR a callable (function, callback, closure)
