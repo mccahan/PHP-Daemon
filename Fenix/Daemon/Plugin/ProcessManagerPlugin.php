@@ -1,10 +1,16 @@
 <?php
 
+namespace Fenix\Daemon\Plugin;
+
+use Fenix\Daemon\Plugin\PluginInterface;
+use Fenix\Daemon\DaemonBase;
+use Fenix\Daemon\Lib\ProcessLib;
+
 /**
  * Manage creation and shutdown of Worker and Task processes used by the Daemon
  * @author Shane Harter
  */
-class Core_Plugin_ProcessManager implements Core_IPlugin
+class ProcessManagerPlugin implements PluginInterface
 {
 
     /**
@@ -18,12 +24,12 @@ class Core_Plugin_ProcessManager implements Core_IPlugin
     const CHURN_LIMIT = 5;
 
     /**
-     * @var Core_Daemon
+     * @var DaemonBase
      */
     public $daemon;
 
     /**
-     * @var Core_Lib_Process[]
+     * @var ProcessLib[]
      */
     public $processes = array();
 
@@ -35,7 +41,7 @@ class Core_Plugin_ProcessManager implements Core_IPlugin
 
 
 
-    public function __construct(Core_Daemon $daemon) {
+    public function __construct(DaemonBase $daemon) {
         $this->daemon = $daemon;
     }
 
@@ -48,7 +54,7 @@ class Core_Plugin_ProcessManager implements Core_IPlugin
      * @return void
      */
     public function setup() {
-        $this->daemon->on(Core_Daemon::ON_IDLE, array($this, 'reap'), 30);
+        $this->daemon->on(DaemonBase::ON_IDLE, array($this, 'reap'), 30);
     }
 
     /**
@@ -78,7 +84,7 @@ class Core_Plugin_ProcessManager implements Core_IPlugin
      * @return Array  Return array of error messages (Think stuff like "GD Library Extension Required" or "Cannot open /tmp for Writing") or an empty array
      */
     public function check_environment(Array $errors = array()) {
-        if (! $this->daemon instanceof Core_Daemon)
+        if (! $this->daemon instanceof DaemonBase)
             $errors[] = "Invalid reference to Application Object";
 
         return $errors;
@@ -156,12 +162,12 @@ class Core_Plugin_ProcessManager implements Core_IPlugin
             case 0:
                 // Child Process
                 @ pcntl_setpriority(1);
-                $this->daemon->dispatch(array(Core_Daemon::ON_FORK));
+                $this->daemon->dispatch(array(DaemonBase::ON_FORK));
                 return true;
 
             default:
                 // Parent Process - Return the pid of the newly created Task
-                $proc = new Core_Lib_Process();
+                $proc = new ProcessLib();
                 $proc->pid = $pid;
                 $proc->group = $group;
 
@@ -190,7 +196,7 @@ class Core_Plugin_ProcessManager implements Core_IPlugin
 
             $alias   = $map[$pid]->group;
             $process = $this->processes[$alias][$pid];
-            $this->daemon->dispatch(array(Core_Daemon::ON_REAP), array($process, $status));
+            $this->daemon->dispatch(array(DaemonBase::ON_REAP), array($process, $status));
             unset($this->processes[$alias][$pid]);
 
             // Keep track of process churn -- failures within a processes min_ttl

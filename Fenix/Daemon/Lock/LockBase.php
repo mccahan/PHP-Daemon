@@ -1,12 +1,17 @@
 <?php
 
+namespace Fenix\Daemon\Lock;
+
+use Fenix\Daemon\Plugin\PluginInterface;
+use Fenix\Daemon\DaemonBase;
+
 /**
  * Lock provider base class
  *
  * @todo Create Redis lock provider
  * @todo Create APC lock provider
  */
-abstract class Core_Lock_Lock implements Core_IPlugin
+abstract class LockBase implements PluginInterface
 {
     public static $LOCK_TTL_PADDING_SECONDS = 2.0;
     public static $LOCK_UNIQUE_ID = 'daemon_lock';
@@ -39,18 +44,18 @@ abstract class Core_Lock_Lock implements Core_IPlugin
      */
     protected $args = array();
 
-    public function __construct(Core_Daemon $daemon, Array $args = array())
+    public function __construct(DaemonBase $daemon, Array $args = array())
     {
         $this->pid = getmypid();
-        $this->daemon_name = get_class($daemon);
+        $this->daemon_name = str_replace('\\', '_', get_class($daemon));
         $this->ttl = $daemon->loop_interval();
         $this->args = $args;
 
-        $daemon->on(Core_Daemon::ON_INIT, array($this, 'set'));
-        $daemon->on(Core_Daemon::ON_PREEXECUTE, array($this, 'set'));
+        $daemon->on(DaemonBase::ON_INIT, array($this, 'set'));
+        $daemon->on(DaemonBase::ON_PREEXECUTE, array($this, 'set'));
 
         $that = $this;
-        $daemon->on(Core_Daemon::ON_PIDCHANGE, function ($args) use ($that) {
+        $daemon->on(DaemonBase::ON_PIDCHANGE, function ($args) use ($that) {
             if (!empty($args[0]))
                 $that->pid = $args[0];
         });

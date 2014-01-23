@@ -1,10 +1,13 @@
 <?php
+
+namespace Fenix\Daemon\Lib;
+
 /**
  *
  * @author sharter
  */
 
-class Core_Lib_Command
+class Command
 {
     public $regex;
 

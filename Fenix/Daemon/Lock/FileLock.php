@@ -1,5 +1,11 @@
 <?php
 
+namespace Fenix\Daemon\Lock;
+
+use Fenix\Daemon\DaemonBase;
+use Fenix\Daemon\Lock\LockBase;
+use Fenix\Daemon\Plugin\PluginInterface;
+
 /**
  * Use a lock file. The PID will be set as the file contents, and the filemtime will be used to determine
  * expiration.
@@ -7,7 +13,7 @@
  * @author Shane Harter
  * @since 2011-07-29
  */
-class Core_Lock_File extends Core_Lock_Lock implements Core_IPlugin
+class FileLock extends LockBase implements PluginInterface
 {
     /**
      * The directory where the lockfile will be written. The filename will be whatever you set the $daemon_name to be.
@@ -20,7 +26,7 @@ class Core_Lock_File extends Core_Lock_Lock implements Core_IPlugin
 
     protected $filename;
 
-    public function __construct(Core_Daemon $daemon, Array $args = array())
+    public function __construct(DaemonBase $daemon, Array $args = array())
     {
         parent::__construct($daemon, $args);
         if (isset($args['path']))
@@ -34,7 +40,7 @@ class Core_Lock_File extends Core_Lock_Lock implements Core_IPlugin
         if (substr($this->path, -1, 1) != '/')
             $this->path .= '/';
 
-        $this->filename = $this->path . $this->daemon_name . '.' . Core_Lock_Lock::$LOCK_UNIQUE_ID;
+        $this->filename = $this->path . $this->daemon_name . '.' . LockBase::$LOCK_UNIQUE_ID;
     }
 
     public function teardown()
@@ -46,8 +52,8 @@ class Core_Lock_File extends Core_Lock_Lock implements Core_IPlugin
 
     public function check_environment(Array $errors = array())
     {
-        if (is_writable($this->path) == false)
-            $errors[] = 'Lock File Path ' . $this->path . ' Not Writable.';
+        if (!is_writable($this->filename) == false)
+            $errors[] = 'Lock File Path ' . $this->filename . ' Not Writable.';
 
         return $errors;
     }
@@ -57,7 +63,7 @@ class Core_Lock_File extends Core_Lock_Lock implements Core_IPlugin
         $lock = $this->check();
 
         if ($lock)
-            throw new Exception('Core_Lock_File::set Failed. Additional Lock Detected. PID: ' . $lock);
+            throw new \Exception('Core_Lock_File::set Failed. Additional Lock Detected. PID: ' . $lock);
 
         // The lock value will contain the process PID
         file_put_contents($this->filename, $this->pid);
@@ -83,7 +89,7 @@ class Core_Lock_File extends Core_Lock_Lock implements Core_IPlugin
 
         // If the lock is expired
         clearstatcache();
-        if ((filemtime($this->filename) + $this->ttl + Core_Lock_Lock::$LOCK_TTL_PADDING_SECONDS) < time())
+        if ((filemtime($this->filename) + $this->ttl + LockBase::$LOCK_TTL_PADDING_SECONDS) < time())
             return false;
 
         return $lock;

@@ -2,12 +2,14 @@
 
 namespace Examples\PrimeNumbers;
 
+use Fenix\Daemon\Worker\WorkerInterface;
+
 /**
  * Fun with Prime Numbers
  * PHP Simple Daemon Worker
  * @author Shane Harter
  */
-class Workers_Primes implements \Core_IWorker
+class Workers_Primes implements WorkerInterface
 {
     /**
      * Reference to the mediator is automatically provided
@@ -87,7 +89,7 @@ class Workers_Primes implements \Core_IWorker
 
         // This is an example of how you can add in custom breakpoints that will be active when you run
         // your daemon with the --debugworkers flag set.
-        $this->mediator->breakpoint("Something Is Happeneing in sieve! Oh Noes!");
+        $this->mediator->breakpoint("Something is happening in sieve! Oh Noes!");
 
         for ($i = $start; $i <= $end; $i++)
         {

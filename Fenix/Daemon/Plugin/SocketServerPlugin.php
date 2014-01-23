@@ -1,10 +1,15 @@
 <?php
 
+namespace Fenix\Daemon\Plugin;
+
+use Fenix\Daemon\Plugin\PluginInterface;
+use Fenix\Daemon\DaemonBase;
+
 /**
  * Create a simple socket server.
- * Supply an IP and Port for incoming connections. Add any number of Core_Lib_Command objects to parse client input.
+ * Supply an IP and Port for incoming connections. Add any number of Lib\Command objects to parse client input.
  *
- * Used in blocking mode, this can be the backbone of a Core_Daemon based server with a loop_interval set to Null.
+ * Used in blocking mode, this can be the backbone of a DaemonBase based server with a DaemonBase set to Null.
  * Alternatively, you could set $blocking = false and use it to interact with a timer-based Core_Daemon application.
  *
  * Can be combined with the Worker API by adding Command objects that call methods attached to a Worker. That would leave
@@ -12,7 +17,7 @@
  * between client input to worker calls, and worker return values to client output.
  *
  */
-class Core_Plugin_Server implements Core_IPlugin
+class SocketServerPlugin implements PluginInterface
 {
     const COMMAND_CONNECT       = 'CLIENT_CONNECT';
     const COMMAND_DISCONNECT    = 'CLIENT_DISCONNECT';
@@ -80,12 +85,12 @@ class Core_Plugin_Server implements Core_IPlugin
      * CLIENT_DISCONNECT(stdClass Client)
      * SERVER_DISCONNECT
      *
-     * @var Core_Lib_Command[]
+     * @var Fenix\Daemon\Lib\Command[]
      */
     private $commands = array();
 
 
-    public function __construct(Core_Daemon $daemon) {
+    public function __construct(DaemonBase $daemon) {
         $this->daemon = $daemon;
     }
 
@@ -106,7 +111,7 @@ class Core_Plugin_Server implements Core_IPlugin
         }
 
         socket_listen($this->socket);
-        $this->daemon->on(Core_Daemon::ON_POSTEXECUTE, array($this, 'run'));
+        $this->daemon->on(DaemonBase::ON_POSTEXECUTE, array($this, 'run'));
     }
 
     /**
@@ -142,7 +147,7 @@ class Core_Plugin_Server implements Core_IPlugin
      *
      * @param Core_Lib_Command $command
      */
-    public function addCommand(Core_Lib_Command $command) {
+    public function addCommand(Command $command) {
         $this->commands[] = $command;
         return $this;
     }
@@ -202,14 +207,14 @@ class Core_Plugin_Server implements Core_IPlugin
     private function connect() {
         $slot = $this->slot();
         if ($slot === null)
-            throw new Exception(sprintf('%s Failed - Maximum number of connections has been reached.', __METHOD__));
+            throw new \Exception(sprintf('%s Failed - Maximum number of connections has been reached.', __METHOD__));
 
         $this->debug("Creating New Connection");
 
         $client = new stdClass();
         $client->socket = socket_accept($this->socket);
         if (empty($client->socket))
-            throw new Exception(sprintf('%s Failed - socket_accept failed with error: %s', __METHOD__, socket_last_error()));
+            throw new \Exception(sprintf('%s Failed - socket_accept failed with error: %s', __METHOD__, socket_last_error()));
 
         socket_getpeername($client->socket, $client->ip);
 
@@ -225,7 +230,7 @@ class Core_Plugin_Server implements Core_IPlugin
         // @todo clean this up
         $daemon = $this->daemon;
         $this->command(self::COMMAND_CONNECT, array($client->write, function($str) use ($daemon) {
-            $daemon->log($str, 'SocketServer');
+            $daemon->log($str, 'SocketServerPlugin');
         }));
     }
 
@@ -238,7 +243,7 @@ class Core_Plugin_Server implements Core_IPlugin
     private function disconnect($slot) {
         $daemon = $this->daemon;
         $this->command(self::COMMAND_DISCONNECT, array($this->clients[$slot]->write, function($str) use ($daemon) {
-            $daemon->log($str, 'SocketServer');
+            $daemon->log($str, 'SocketServerPlugin');
         }));
 
         @ socket_shutdown($this->clients[$slot]->socket, 1);

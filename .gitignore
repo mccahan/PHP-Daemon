@@ -1,3 +1,5 @@
+vendor/*
+
 # Numerous always-ignore extensions
 *.diff
 *.err

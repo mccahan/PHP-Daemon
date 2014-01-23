@@ -1,11 +1,13 @@
 <?php
 
+namespace Fenix\Daemon\Lib;
+
 /**
  * Wrapper class for Memcached supplying Auto-Retry functionality.
  * @author Shane Harter
  * @final
  */
-final class Core_Lib_Memcache extends Memcached
+final class MemcachedLib extends \Memcached
 {
 	/**
 	 * How long can we usleep within the function before doing a retry. Longer durations will give

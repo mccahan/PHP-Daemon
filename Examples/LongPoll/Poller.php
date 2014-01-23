@@ -1,6 +1,10 @@
 <?php
 namespace Examples\LongPoll;
 
+use Fenix\Daemon\DaemonBase;
+use Fenix\Daemon\Lock\FileLock;
+use Fenix\Daemon\Plugin\INIPlugin;
+
 /**
  * A PHP Simple Daemon example application.
  * Use a background worker to continuously poll for updated information from an API and bring that information into the
@@ -8,7 +12,7 @@ namespace Examples\LongPoll;
  *
  * @author Shane Harter
  */
-class Poller extends \Core_Daemon
+class Poller extends DaemonBase
 {
     protected $loop_interval = 3;
 
@@ -24,10 +28,10 @@ class Poller extends \Core_Daemon
      */
 	  protected function setup_plugins()
 	  {
-        $this->plugin('Lock_File');
+        $this->plugin('Lock_File', new FileLock($this, array('path' => '/tmp/')));
 
-		    $this->plugin('ini');
-		    $this->ini->filename = BASE_PATH . '/config.ini';
+		    $this->plugin('ini', new INIPlugin());
+		    $this->ini->filename = __DIR__ . '/config.ini';
 		    $this->ini->required_sections = array('api');
 	  }
 

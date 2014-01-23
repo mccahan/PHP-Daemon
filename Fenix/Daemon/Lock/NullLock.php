@@ -1,5 +1,10 @@
 <?php
 
+namespace Fenix\Daemon\Lock;
+
+use Fenix\Daemon\Lock\LockBase;
+use Fenix\Daemon\Plugin\PluginInterface;
+
 /**
  * Implements the lock provider and plugin interfaces to make development easier.
  * Before version 2.0 of PHP Simple Daemon a lock provider was required, so this was used to satisfy that requirement
@@ -8,7 +13,7 @@
  * @author Shane Harter
  * @since 2011-07-28
  */
-class Core_Lock_Null extends Core_Lock_Lock implements Core_IPlugin
+class NullLock extends LockBase implements PluginInterface
 {
 	public function setup()
 	{

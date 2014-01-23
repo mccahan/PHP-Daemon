@@ -1,10 +1,16 @@
 <?php
 
+namespace Fenix\Daemon\Lock;
+
+use Fenix\Daemon\Lock\LockBase;
+use Fenix\Daemon\Plugin\PluginInterface;
+use Fenix\Daemon\DaemonBase;
+
 /**
  * Use IPC Shared Memory. The ID will be the daemon run filename, the key will be "pid", the value will be the pid.
  * @author Shane Harter
  */
-class Core_Lock_Shm extends Core_Lock_Lock implements Core_IPlugin
+class SHMLock extends LockBase implements PluginInterface
 {
     const ADDRESS = 1;
 
@@ -20,7 +26,7 @@ class Core_Lock_Shm extends Core_Lock_Lock implements Core_IPlugin
 	
 	public function setup()
 	{
-        $ftok = ftok(Core_Daemon::get('filename'), 'L');
+        $ftok = ftok(DaemonBase::get('filename'), 'L');
         $this->shm = shm_attach($ftok, 512, 0666);
 	}
 	
@@ -44,7 +50,7 @@ class Core_Lock_Shm extends Core_Lock_Lock implements Core_IPlugin
 	{
 		$lock = $this->check();
 		if ($lock)
-			throw new Exception('Core_Lock_Shm::set Failed. Existing Lock Detected from PID ' . $lock);
+			throw new \Exception('SHMLock::set Failed. Existing Lock Detected from PID ' . $lock);
 
 		shm_put_var($this->shm, self::ADDRESS, array('pid' => $this->pid, 'time' => time()));
 	}
@@ -58,7 +64,7 @@ class Core_Lock_Shm extends Core_Lock_Lock implements Core_IPlugin
 			return false;
 
         // If it's expired...
-        if ($lock['time'] + $this->ttl + Core_Lock_Lock::$LOCK_TTL_PADDING_SECONDS >= time())
+        if ($lock['time'] + $this->ttl + LockBase::$LOCK_TTL_PADDING_SECONDS >= time())
             return $lock;
 		
 		return false;

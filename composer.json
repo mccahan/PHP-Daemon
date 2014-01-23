@@ -1,14 +1,14 @@
 {
-"name": "fenix/daemon",
-"description": "Create solid, long-running PHP daemon processes",
-"keywords": ["php", "daemon"],
-"type": "library",
-"license": "MIT",
-"require": {
-"php": ">=5.4.0",
-"ext-pcntl": "*"
-},
-"autoload": {
-"psr-0": {"Fenix\\Daemon": ""}
-}
+  "name": "fenix/daemon",
+  "description": "Create solid, long-running PHP daemon processes",
+  "keywords": ["php", "daemon"],
+  "type": "library",
+  "license": "MIT",
+  "require": {
+  "php": ">=5.4.0",
+  "ext-pcntl": "*"
+  },
+  "autoload": {
+    "psr-0": {"Fenix\\Daemon": ""}
+  }
 }

@@ -1,4 +1,9 @@
 <?php
+
+namespace Fenix\Daemon\Worker;
+
+use Fenix\Daemon\Worker\Mediator;
+
 /**
  * Adapt a supplied function to the Worker Mediator class
  *
@@ -8,7 +13,7 @@
  *
  * @author Shane Harter
  */
-final class Core_Worker_FunctionMediator extends Core_Worker_Mediator
+final class FunctionMediator extends Mediator
 {
     /**
      * @var Core_IWorker
@@ -22,7 +27,7 @@ final class Core_Worker_FunctionMediator extends Core_Worker_Mediator
      */
     public function setFunction($f) {
         if (!is_callable($f)) {
-            throw new Exception(__METHOD__ . " Failed. Supplied argument is not callable!");
+            throw new \Exception(__METHOD__ . " Failed. Supplied argument is not callable!");
         }
         $this->function = $f;
         $this->methods = array('execute');
@@ -48,7 +53,7 @@ final class Core_Worker_FunctionMediator extends Core_Worker_Mediator
                 break;
 
             default:
-                throw new Exception("$method() is Not Callable.");
+                throw new \Exception("$method() is Not Callable.");
         }
     }
 

@@ -2,6 +2,8 @@
 
 namespace Examples\Tasks;
 
+use Fenix\Daemon\Task\TaskInterface;
+
 /**
  * Demonstrate using a Core_ITask object to create a more complex task
  * This won't actually do anything but you get the idea
@@ -9,7 +11,7 @@ namespace Examples\Tasks;
  * @author Shane Harter
  * @todo Create a plausible demo of a complex task that implements \Core_ITask
  */
-class BigTask implements \Core_ITask
+class BigTask implements TaskInterface
 {
     /**
      * A handle to the Daemon object
@@ -60,5 +62,10 @@ class BigTask implements \Core_ITask
        sleep($this->sleep_duration);
        if ($this->wakeup_message)
            $this->daemon->log($this->wakeup_message);
+    }
+    
+    public function group()
+    {
+        
     }
 }

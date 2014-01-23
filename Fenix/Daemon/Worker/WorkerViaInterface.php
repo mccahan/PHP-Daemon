@@ -1,6 +1,8 @@
 <?php
 
-interface Core_IWorkerVia
+namespace Fenix\Daemon\Worker;
+
+interface WorkerViaInterface
 {
     /**
      * Puts the message on the queue
@@ -8,7 +10,7 @@ interface Core_IWorkerVia
      * @param $message
      * @return boolean
      */
-    public function put(Core_Worker_Call $message);
+    public function put(Call $message);
 
     /**
      * Retrieves a message from the queue

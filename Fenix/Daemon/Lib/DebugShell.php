@@ -1,5 +1,8 @@
 <?php
 
+namespace Fenix\Daemon\Lib;
+
+use Fenix\Daemon\DaemonBase;
 
 /**
  * Wrap a supplied object in a commandline debug shell. Calls to the objects public methods will be proxied to the shell
@@ -10,7 +13,7 @@
  *
  * @author Shane Harter
  */
-class Core_Lib_DebugShell
+class DebugShell
 {
 
     const ABORT     = 0;
@@ -106,7 +109,7 @@ class Core_Lib_DebugShell
 
     public function __construct($object) {
         if (!is_object($object))
-            throw new Exception("DebugShell Failed: You must supply an object to be proxied.");
+            throw new \Exception("DebugShell Failed: You must supply an object to be proxied.");
 
         $this->object = $object;
     }
@@ -181,7 +184,7 @@ class Core_Lib_DebugShell
      */
     public function setup_shell() {
         ini_set('display_errors', 0); // Displayed errors won't break the debug console but it will make it more difficult to use. Tail a log file in another shell instead.
-        $this->ftok = ftok(Core_Daemon::get('filename'), 'D');
+        $this->ftok = ftok(DaemonBase::get('filename'), 'D');
         $this->mutex = sem_get($this->ftok, 1, 0666, 1);
         $this->shm = shm_attach($this->ftok, 64 * 1024, 0666);
 
@@ -215,7 +218,7 @@ class Core_Lib_DebugShell
             'command'     => 'skipfor [n]',
             'description' => 'Run the daemon (and skip ALL breakpoints) for N seconds, then return to normal break point operation.',
             'closure'     => function($matches, $printer) {
-                posix_kill(Core_Daemon::get('parent_pid'), $matches[1]);
+                posix_kill(DaemonBase::get('parent_pid'), $matches[1]);
                 $printer("Signal Sent");
             }
         );
@@ -280,7 +283,7 @@ class Core_Lib_DebugShell
         $test = array_keys(current($parsers));
         $keys = array('regex', 'command', 'description', 'closure');
         if ($test != $keys)
-            throw new Exception("Cannot Load Parser Queue: Invalid array format. Expected Keys: " . implode(', ', $test) . " Given Keys: " . implode(', ', $keys));
+            throw new \Exception("Cannot Load Parser Queue: Invalid array format. Expected Keys: " . implode(', ', $test) . " Given Keys: " . implode(', ', $keys));
 
         $this->parsers = array_merge($this->parsers, $parsers);
     }
@@ -327,7 +330,7 @@ class Core_Lib_DebugShell
     public function debug_state ($key, $value = null, $default = null) {
         static $state = false;
         $defaults = array(
-            'parent'  => Core_Daemon::get('parent_pid'),
+            'parent'  => DaemonBase::get('parent_pid'),
             'enabled' => true,
             'indent'  => true,
             'last'    => '',
@@ -341,7 +344,7 @@ class Core_Lib_DebugShell
             $state = $defaults;
 
         // If the process was kill -9'd we might have settings from last debug session hanging around.. wipe em
-        if ($state['parent'] != Core_Daemon::get('parent_pid')) {
+        if ($state['parent'] != DaemonBase::get('parent_pid')) {
             $state = $defaults;
             shm_put_var($this->shm, 1, $state);
         }
@@ -598,7 +601,7 @@ class Core_Lib_DebugShell
                     case 'kill':
                         @fclose(STDOUT);
                         @fclose(STDERR);
-                        @exec('ps -C "php ' . Core_Daemon::get('filename') . '" -o pid= | xargs kill -9 ');
+                        @exec('ps -C "php ' . DaemonBase::get('filename') . '" -o pid= | xargs kill -9 ');
                         break;
 
                     case 'capture':
@@ -628,7 +631,7 @@ class Core_Lib_DebugShell
                 }
             }
 
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             $this->mutex_release();
             throw $e;
         }

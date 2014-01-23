@@ -1,5 +1,7 @@
 <?php
 
+namespace Fenix\Daemon\Task;
+
 /**
  * Objects that implement Core_ITask can be passed directly to the Core_Daemon::task() method. Simple tasks can be implemented as 
  * a closure. But more complex tasks (or those that benefit from their own setup() and teardown() code) can be more cleanly
@@ -11,7 +13,7 @@
  * Note: An ON_FORK event will be dispatched every time a new task() is created -- whether that is explicitely by you, or implicitely 
  * by the Worker API. 
  */
-interface Core_ITask
+interface TaskInterface
 {
     /**
      * Called on Construct or Init

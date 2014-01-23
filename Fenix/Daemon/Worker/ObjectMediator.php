@@ -1,4 +1,7 @@
 <?php
+
+namespace Fenix\Daemon\Worker;
+
 /**
  * Adapt a supplied object to the Worker Mediator
  *
@@ -8,11 +11,11 @@
  *
  * @author Shane Harter
  */
-final class Core_Worker_ObjectMediator extends Core_Worker_Mediator
+final class ObjectMediator extends Mediator
 {
 
     /**
-     * @var Core_IWorker
+     * @var WorkerInterface
      */
     protected $object;
 
@@ -29,8 +32,8 @@ final class Core_Worker_ObjectMediator extends Core_Worker_Mediator
     }
 
     public function setObject($o) {
-        if (!($o instanceof Core_IWorker)) {
-            throw new Exception(__METHOD__ . " Failed. Worker objects must implement Core_IWorker");
+        if (!($o instanceof WorkerInterface)) {
+            throw new \Exception(__METHOD__ . " Failed. Worker objects must implement WorkerInterface");
         }
         $this->object = $o;
         $this->object->mediator = $this;
@@ -41,8 +44,8 @@ final class Core_Worker_ObjectMediator extends Core_Worker_Mediator
     public function check_environment(Array $errors = array()) {
         $errors = array();
 
-        if (!is_object($this->object) || !$this->object instanceof Core_IWorker)
-            $errors[] = 'Invalid worker object. Workers must implement Core_IWorker';
+        if (!is_object($this->object) || !$this->object instanceof WorkerInterface)
+            $errors[] = 'Invalid worker object. Workers must implement WorkerInterface';
 
         $object_errors = $this->object->check_environment();
         if (is_array($object_errors))
@@ -57,7 +60,7 @@ final class Core_Worker_ObjectMediator extends Core_Worker_Mediator
             return $cb;
         }
 
-        throw new Exception("$method() is Not Callable.");
+        throw new \Exception("$method() is Not Callable.");
     }
 
 

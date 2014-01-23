@@ -2,7 +2,10 @@
 
 namespace Examples\Tasks;
 
-class ParallelTasks extends \Core_Daemon
+use Fenix\Daemon\DaemonBase;
+use Fenix\Daemon\Lock\FileLock;
+
+class ParallelTasks extends DaemonBase
 {
     protected  $loop_interval = 1;
 
@@ -11,7 +14,7 @@ class ParallelTasks extends \Core_Daemon
      */
 	protected function setup_plugins()
 	{
-        $this->plugin('Lock_File');
+        $this->plugin('Lock_File', new FileLock($this, array('path' => '/tmp/')));
 	}
 	
 	/**

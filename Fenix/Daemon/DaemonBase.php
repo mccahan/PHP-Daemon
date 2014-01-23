@@ -2,6 +2,15 @@
 
 namespace Fenix\Daemon;
 
+use Fenix\Daemon\Plugin\PluginInterface;
+use Fenix\Daemon\Plugin\ProcessManagerPlugin;
+use Fenix\Daemon\Worker\WorkerViaInterface;
+use Fenix\Daemon\Worker\WorkerInterface;
+use Fenix\Daemon\Worker\Via\SysV;
+use Fenix\Daemon\Worker\ObjectMediator;
+use Fenix\Daemon\Worker\FunctionMediator;
+use Fenix\Daemon\Task\TaskInterface;
+
 declare(ticks = 5);
 
 /**
@@ -154,7 +163,7 @@ abstract class DaemonBase
      * It will be called as part of the built-in init() method.
      * Any exceptions thrown from setup() will be logged as Fatal Errors and result in the daemon shutting down.
      * @return void
-     * @throws Exception
+     * @throws \Exception
      */
     abstract protected function setup();
 
@@ -164,7 +173,7 @@ abstract class DaemonBase
      * Any exceptions thrown from execute() will be logged as Fatal Errors and result in the daemon attempting to restart or shut down.
      *
      * @return void
-     * @throws Exception
+     * @throws \Exception
      */
     abstract protected function execute();
 
@@ -260,7 +269,7 @@ abstract class DaemonBase
      * and then call parent::check_environment($my_errors)
      * @param Array $errors
      * @return void
-     * @throws Exception
+     * @throws \Exception
      */
     protected function check_environment(Array $errors = array())
     {
@@ -289,7 +298,7 @@ abstract class DaemonBase
 
         if (count($errors)) {
             $errors = implode("\n  ", $errors);
-            throw new Exception("Checking Dependencies... Failed:\n  $errors");
+            throw new \Exception("Checking Dependencies... Failed:\n  $errors");
         }
     }
 
@@ -317,7 +326,7 @@ abstract class DaemonBase
         foreach(array_unique($signals) as $signal)
             pcntl_signal($signal, array($this, 'signal'));
 
-        $this->plugin('ProcessManager');
+        $this->plugin('ProcessManager', new ProcessManagerPlugin($this));
         foreach ($this->plugins as $plugin)
             $this->{$plugin}->setup();
 
@@ -382,7 +391,7 @@ abstract class DaemonBase
     {
         $deprecated = array('shutdown', 'verbose', 'is_daemon', 'filename');
         if (in_array($method, $deprecated)) {
-          throw new Exception("Deprecated method call: $method(). Update your code to use the v2.1 get(), set() and is() methods.");
+          throw new \Exception("Deprecated method call: $method(). Update your code to use the v2.1 get(), set() and is() methods.");
         }
 
         $accessors = array('loop_interval', 'pid');
@@ -397,7 +406,7 @@ abstract class DaemonBase
         if (in_array($method, $this->workers))
             return call_user_func_array($this->$method, $args);
 
-        throw new Exception("Invalid Method Call '$method'");
+        throw new \Exception("Invalid Method Call '$method'");
     }
 
     /**
@@ -420,7 +429,7 @@ abstract class DaemonBase
         }
         catch (Exception $e)
         {
-            $this->fatal_error(sprintf('Uncaught Exception in Event Loop: %s [file] %s [line] %s%s%s',
+            $this->fatal_error(sprintf('Uncaught \Exception in Event Loop: %s [file] %s [line] %s%s%s',
                 $e->getMessage(), $e->getFile(), $e->getLine(), PHP_EOL, $e->getTraceAsString()));
         }
     }
@@ -436,12 +445,12 @@ abstract class DaemonBase
      * @param $criteria closure|callback Optional. If provided, any event payload will be passed to this callable and
      *        the event dispatched only if it returns truthy.
      * @return array    The return value can be passed to off() to unbind the event
-     * @throws Exception
+     * @throws \Exception
      */
     public function on($event, $callback, $throttle = null, $criteria = null)
     {
         if (!is_scalar($event))
-            throw new Exception(__METHOD__ . ' Failed. Event type must be Scalar. Given: ' . gettype($event));
+            throw new \Exception(__METHOD__ . ' Failed. Event type must be Scalar. Given: ' . gettype($event));
 
         if (!isset($this->callbacks[$event]))
             $this->callbacks[$event] = array();
@@ -552,7 +561,7 @@ abstract class DaemonBase
         // If a Core_ITask was passed in, wrap it in a closure
         // If no group is provided, add the process to an adhoc "tasks" group. A group identifier is required.
         // @todo this group thing is not elegant. Improve it.
-        if ($task instanceof Core_ITask) {
+        if ($task instanceof TaskInterface) {
             $group = $task->group();
             $callable = function() use($task) {
                 $task->setup();
@@ -568,7 +577,7 @@ abstract class DaemonBase
 
         if ($proc === false) {
             // Parent Process - Fork Failed
-            $e = new Exception();
+            $e = new \Exception();
             $this->error('Task failed: Could not fork.');
             $this->error($e->getTraceAsString());
             return false;
@@ -974,9 +983,9 @@ abstract class DaemonBase
      * @param string $alias
      * @param Core_IPlugin|null $instance
      * @return Core_IPlugin Returns an instance of the plugin
-     * @throws Exception
+     * @throws \Exception
      */
-    protected function plugin($alias, Core_IPlugin $instance = null)
+    protected function plugin($alias, PluginInterface $instance = null)
     {
         $this->check_alias($alias);
 
@@ -998,7 +1007,7 @@ abstract class DaemonBase
         }
 
         if (!is_object($instance)) {
-            throw new Exception(__METHOD__ . " Failed. Could Not Load Plugin '{$alias}'");
+            throw new \Exception(__METHOD__ . " Failed. Could Not Load Plugin '{$alias}'");
         }
 
         $this->{$alias} = $instance;
@@ -1015,41 +1024,41 @@ abstract class DaemonBase
      * @return Core_Worker_ObjectMediator Returns a Core_Worker class that can be used to interact with the Worker
      * @todo Use 'callable' type hinting if/when we move to a php 5.4 requirement.
      */
-    protected function worker($alias, $worker, Core_IWorkerVia $via = null)
+    protected function worker($alias, $worker, WorkerViaInterface $via = null)
     {
         if (!$this->is('parent'))
             // While in theory there is nothing preventing you from creating workers in child processes, supporting it
             // would require changing a lot of error handling and process management code and I don't really see the value in it.
-            throw new Exception(__METHOD__ . ' Failed. You cannot create workers in a background processes.');
+            throw new \Exception(__METHOD__ . ' Failed. You cannot create workers in a background processes.');
 
         if ($via === null)
-            $via = new Core_Worker_Via_SysV();
+            $via = new SysV();
 
         $this->check_alias($alias);
 
         switch (true) {
             case is_object($worker) && !is_a($worker, 'Closure'):
-                $mediator = new Core_Worker_ObjectMediator($alias, $this, $via);
+                $mediator = new ObjectMediator($alias, $this, $via);
 
                 // Ensure that there are no reserved method names in the worker object -- Determine if there will
                 // be a collision between worker methods and public methods on the Mediator class
                 // Exclude any methods required by the Core_IWorker interface from the check.
                 $intersection = array_intersect(get_class_methods($worker), get_class_methods($mediator));
-                $intersection = array_diff($intersection, get_class_methods('Core_IWorker'));
+                $intersection = array_diff($intersection, get_class_methods("Fenix\Daemon\Worker\WorkerInterface"));
                 if (!empty($intersection))
-                    throw new Exception(sprintf('%s Failed. Your worker class "%s" contains restricted method names: %s.',
+                    throw new \Exception(sprintf('%s Failed. Your worker class "%s" contains restricted method names: %s.',
                         __METHOD__, get_class($worker), implode(', ', $intersection)));
 
                 $mediator->setObject($worker);
                 break;
 
             case is_callable($worker):
-                $mediator = new Core_Worker_FunctionMediator($alias, $this, $via);
+                $mediator = new FunctionMediator($alias, $this, $via);
                 $mediator->setFunction($worker);
                 break;
 
             default:
-                throw new Exception(__METHOD__ . ' Failed. Could Not Load Worker: ' . $alias);
+                throw new \Exception(__METHOD__ . ' Failed. Could Not Load Worker: ' . $alias);
         }
 
         $this->workers[] = $alias;
@@ -1060,14 +1069,14 @@ abstract class DaemonBase
     /**
      * Simple function to validate that alises for Plugins or Workers won't interfere with each other or with existing daemon properties.
      * @param $alias
-     * @throws Exception
+     * @throws \Exception
      */
     private function check_alias($alias) {
         if (empty($alias) || !is_scalar($alias))
-            throw new Exception("Invalid Alias. Identifiers must be scalar.");
+            throw new \Exception("Invalid Alias. Identifiers must be scalar.");
 
         if (isset($this->{$alias}))
-            throw new Exception("Invalid Alias. The identifier `{$alias}` is already in use or is reserved");
+            throw new \Exception("Invalid Alias. The identifier `{$alias}` is already in use or is reserved");
     }
 
     /**
@@ -1291,7 +1300,7 @@ abstract class DaemonBase
             return $this->loop_interval;
 
         if (!is_numeric($set_value))
-            throw new Exception(__METHOD__ . ' Failed. Could not set loop interval. Number Expected. Given: ' . $set_value);
+            throw new \Exception(__METHOD__ . ' Failed. Could not set loop interval. Number Expected. Given: ' . $set_value);
 
         $this->loop_interval = $set_value;
 
@@ -1324,7 +1333,7 @@ abstract class DaemonBase
             return $this->pid;
 
         if (!is_integer($set_value))
-            throw new Exception(__METHOD__ . ' Failed. Could not set pid. Integer Expected. Given: ' . $set_value);
+            throw new \Exception(__METHOD__ . ' Failed. Could not set pid. Integer Expected. Given: ' . $set_value);
 
         $this->pid = $set_value;
         if ($this->is('parent'))
